@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AV-Watchlist</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Minimal modal styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0; top: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #222;
+      color: #eee;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 15px;
+      font-size: 22px;
+      cursor: pointer;
+      color: #fff;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px 0;
+      font-weight: bold;
+    }
+    textarea {
+      width: 100%;
+      height: 70px;
+      border-radius: 5px;
+      padding: 8px;
+      background: #111;
+      border: 1px solid #555;
+      color: #eee;
+      resize: vertical;
+    }
+    input[type="submit"] {
+      margin-top: 15px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .stars {
+      display: flex;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .star {
+      font-size: 25px;
+      color: #666;
+    }
+    .star.selected,
+    .star:hover,
+    .star:hover ~ .star {
+      color: gold;
+    }
+
+    /* Flipping card container effect*/
+    .anime-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px 0;
+    }
+
+    .anime-card {
+      width: 250px;
+      height: 370px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin: 0 auto;
+    }
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.8s;
+      transform-style: preserve-3d;
+    }
+    .anime-card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      backface-visibility: hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      overflow-y: auto;
+      background: #111;
+      color: #eee;
+    }
+
+    .card-front img {
+      width: 100%;
+      height: 300px;
+      border-radius: 10px 10px 0 0;
+      object-fit: cover;
+      display: block;
+    }
+    .card-front p {
+      margin: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      padding: 15px;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .card-back h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .card-back .synopsis {
+      max-height: 130px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      text-align: justify;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Review form inside card back */
+    .card-back label {
+      font-weight: bold;
+      margin-top: 8px;
+      display: block;
+    }
+    .card-back textarea {
+      width: 100%;
+      height: 50px;
+      font-size: 14px;
+      padding: 5px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      resize: vertical;
+      background: #222;
+      border: 1px solid #444;
+      color: #eee;
+    }
+    .card-back input[type="submit"] {
+      width: 100%;
+      padding: 8px;
+      background: #007bff;
+      border: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    /* Stars inside card back */
+    .card-back .stars {
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .card-back .star {
+      font-size: 20px;
+    }
+
+    /* Vault button styling */
+    #vaultButton {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 25px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #vaultButton:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>The Anime Vault</h1>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="watchlist.html" class="active" aria-current="page">Watchlist</a></li>
+          <li><a href="reviews.html">Reviews</a></li>
+          <li><a href="feedback.html">Feedback</a></li>
+          <li><a href="about.html">About</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="anime-section">
+    <div class="glass-container">
+      <h2>The Vault Watchlist</h2>
+      <div class="anime-grid" id="animeGrid">
+        <!-- Anime cards are inserted here by JS -->
+      </div>
+      <button id="vaultButton">Open Vault</button>
+    </div>
+  </main>
+
+  <!-- Modal for adding review (existing, kept for backward compatibility) -->
+  <div class="modal" id="reviewModal">
+    <div class="modal-content">
+      <span class="close-btn" id="closeModal">&times;</span>
+      <h3 id="modalAnimeTitle">Review Anime</h3>
+      <img id="modalAnimeImage" src="" alt="" style="width: 150px; border-radius: 8px; display: block; margin: 0 auto 15px;" />
+      
+      <form id="reviewForm">
+        <label for="rating">Rating:</label>
+        <div class="stars" id="starRating">
+          <span class="star" data-value="1">&#9733;</span>
+          <span class="star" data-value="2">&#9733;</span>
+          <span class="star" data-value="3">&#9733;</span>
+          <span class="star" data-value="4">&#9733;</span>
+          <span class="star" data-value="5">&#9733;</span>
+        </div>
+
+        <label for="comment">Comment:</label>
+        <textarea id="comment" name="comment" placeholder="Write your review here..." required></textarea>
+
+        <input type="submit" value="Submit Review" />
+      </form>
+    </div>
+  </div>
+
+<script>
+  // Complete anime data with synopsis paragraphs (first 4 shown initially, next 4 revealed by vault button)
+  const animeList = [
+    // Initial 4 anime (keep your existing synopsis, truncated to 2 paragraphs for brevity here)
+  {
+      name: "A silent voice",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/7f/c6/7fc61d82b89949dff4319bd73ff2d456/7fc61d82b89949dff4319bd73ff2d456.jpg",
+      synopsis: [
+        "A Silent Voice follows the story of Shoya Ishida, a former bully who seeks redemption by reaching out to Shoko Nishimiya, a deaf girl he once tormented in elementary school.",
+        "The film explores themes of bullying, disability, forgiveness, and the difficulty of communication. It is a deeply emotional and beautifully animated film.",
+        "Throughout the movie, Shoya learns the consequences of his actions and tries to make amends with Shoko and his classmates, while facing his own guilt and loneliness.",
+        "The story provides a realistic look at social stigma and the struggle for acceptance, making it a compelling and heartfelt experience."
+      ]
+  },
+  {
+      name: "Akame ga Kill",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/df/d6/dfd6b4cb63f4ca2acbee3b55a7c29afb/dfd6b4cb63f4ca2acbee3b55a7c29afb.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Am I Actually the Strongest",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/f5/14/f5143ba1266a0f80f5ea770e92721b47/f5143ba1266a0f80f5ea770e92721b47.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Assassination Classroom",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/02/f4/02f4fdbe5a518ec0a88b4c6cad9ce0e4/02f4fdbe5a518ec0a88b4c6cad9ce0e4.jpg",
+      synopsis: ["Hi there."]
+    },
+    // Vault 4 anime with 5 paragraphs each
+    {
+      name: "Attack on Titan",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/16/08/160831b6a0c1303e1439925d8f8c7395/160831b6a0c1303e1439925d8f8c7395.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Baki",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/4f/e7/4fe77589bb2ca6f2857ba863c1d78f3e/4fe77589bb2ca6f2857ba863c1d78f3e.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Beyond the Boundary",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/24/58/2458f1490e5d3d7cd8a071a8fa0e561b/2458f1490e5d3d7cd8a071a8fa0e561b.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Black Clover",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/f5/8b/f58b0204c20ae3310f65ae7b8cb9987e/f58b0204c20ae3310f65ae7b8cb9987e.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Black Summoner",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/c4/88/c4885983848251a200947a0e0e3b415f/c4885983848251a200947a0e0e3b415f.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Bleach",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/b8/7a/b87a9e986e6e403ffddb520d24f5040a/b87a9e986e6e403ffddb520d24f5040a.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Boruto",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/32/c8/32c83e2ad4a43229996356840db3982c/32c83e2ad4a43229996356840db3982c.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Bungou Stray Dogs",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ed/27/ed273e90615f1ae97a2f1519639cd7ff/ed273e90615f1ae97a2f1519639cd7ff.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Castlevania",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/8a/e0/8ae046ea432eea4bf7bb3bd283f8dae7/8ae046ea432eea4bf7bb3bd283f8dae7.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Chainsaw Man",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/b3/da/b3da1326e07269ddd8d73475c5dabf2c/b3da1326e07269ddd8d73475c5dabf2c.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Classroom of the Elite",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/01/73/0173c02acdd9948db19842566285a7db/0173c02acdd9948db19842566285a7db.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Code Geass",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/d4/48/d4489400a9e3cd986299f0f12cec3055/d4489400a9e3cd986299f0f12cec3055.jpg",
+      synopsis: [
+    "Code Geass centers on Lelouch Lamperouge, a high school student who gains a mysterious power called Geass, allowing him to command anyone to obey his orders.",
+    "Set in an alternate history where the Holy Britannian Empire conquers Japan, Lelouch becomes the masked vigilante Zero to overthrow Britannia and seek justice.",
+    "The series blends mecha action, political intrigue, and complex character development, with moral ambiguity and dramatic twists.",
+    "It raises questions about power, sacrifice, and the costs of rebellion, making it a critically acclaimed anime."]
+    },
+    {
+      name: "Dandadan",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a8/b5/a8b56a7589ff9edb6c86977c31e27a06/a8b56a7589ff9edb6c86977c31e27a06.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Death Note",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/5e/61/5e61f3e7c0045e46b670d31a5bb39c68/5e61f3e7c0045e46b670d31a5bb39c68.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Demon Slayer",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/30/df/30df93feaa422101659e14d0a2a2f582/30df93feaa422101659e14d0a2a2f582.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Drifters",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/46/86/468639f57a4c221f6ed135cef78b926b/468639f57a4c221f6ed135cef78b926b.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Fairy Tail",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/cc/bc/ccbc20fd8ddf9b2000bf23894a787436/ccbc20fd8ddf9b2000bf23894a787436.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Fate/Zero",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/37/dd/37ddc93993ea6851f05579f9f49543dc/37ddc93993ea6851f05579f9f49543dc.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Fire Force",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/f6/d9/f6d9cbc5cc655c5600f296acb1138975/f6d9cbc5cc655c5600f296acb1138975.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Freezing",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/6d/0e/6d0eb5c59cdb389a20cdc659a91eb8bf/6d0eb5c59cdb389a20cdc659a91eb8bf.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Frieren; Beyond Journey's End",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/5e/76/5e766fbd23e796462040a67203345a7b/5e766fbd23e796462040a67203345a7b.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Fullmetal Alchemist",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/02/e1/02e12b85f54dc6711ed861a9913bb933/02e12b85f54dc6711ed861a9913bb933.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Full-time Magister",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/36/ba/36baa6445a85f1ec44e07516c1dd5c86/36baa6445a85f1ec44e07516c1dd5c86.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Helck",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/5f/4f/5f4f957a60e872f6bcc6b9708ea2ba7a/5f4f957a60e872f6bcc6b9708ea2ba7a.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Hell's Paradise",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/5f/d0/5fd0a7d4f0e1a9088c85bc0dcb2f176a/5fd0a7d4f0e1a9088c85bc0dcb2f176a.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "High Card",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/71/e7/71e709d703c37be7253caadfd955f8cb/71e709d703c37be7253caadfd955f8cb.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Hunter X Hunter",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/99/3c/993c0361975cce4c7fbb11f8558f9664/993c0361975cce4c7fbb11f8558f9664.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Hyouka",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/0c/00/0c00b99877cb1182d04f020a457a9ea1/0c00b99877cb1182d04f020a457a9ea1.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "I Got A Cheat Skill In Another World...",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/0a/d5/0ad5356f28ee75bccfde8b69ea6a5e54/0ad5356f28ee75bccfde8b69ea6a5e54.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Jujutsu Kaisen",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/82/40/82402f796b7d84d7071ab1e03ff7747a/82402f796b7d84d7071ab1e03ff7747a.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Kaiju No.8",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ed/fc/edfc7fe935b6eac2d704cf5b0a60e356/edfc7fe935b6eac2d704cf5b0a60e356.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Kakegurui",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/43/c6/43c62121394e798b44fb0aadab6bbf15/43c62121394e798b44fb0aadab6bbf15.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Malevolent Spirits",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9f/b3/9fb3330b12e98c51a7d3bc3824ba1785/9fb3330b12e98c51a7d3bc3824ba1785.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Mashle",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9f/af/9faf29fb396c436d19ed83fa82a31e2f/9faf29fb396c436d19ed83fa82a31e2f.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Monster",
+      image: "https://i.imgur.com/KZ7XERx.jpeg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Moonlit Fantasy",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/4e/98/4e98df6c3fa1eb5e25077af466f8231a/4e98df6c3fa1eb5e25077af466f8231a.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Mushoku Tensei",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/36/8b/368b47bf4417b07cc9f316fffe10d342/368b47bf4417b07cc9f316fffe10d342.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "My Hero Academia",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/22/f0/22f07a9b643cdd601666c518fd59eec9/22f07a9b643cdd601666c518fd59eec9.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "My Teen Romantic Comedy",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a5/88/a5888f0c5f7db0e289ad53ff0a0835a5/a5888f0c5f7db0e289ad53ff0a0835a5.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Naruto",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/5d/b4/5db400c33f7494bc8ae96f9e634958d0/5db400c33f7494bc8ae96f9e634958d0.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Ninja Kamui",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/2d/c0/2dc00291c4fcaed8675d6efb7260b916/2dc00291c4fcaed8675d6efb7260b916.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Nura; Rise of the Yokai Clan",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ca/77/ca776e86ae6f199c75a043cfa9638366/ca776e86ae6f199c75a043cfa9638366.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "One Punch Man",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/f5/d1/f5d173f8317f592c6c70d594829b89e4/f5d173f8317f592c6c70d594829b89e4.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Overlord",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/2f/31/2f31fe7c779b896aaeabb7219a2fc589/2f31fe7c779b896aaeabb7219a2fc589.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Persona",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/59/7e/597e58ea52d714e5bba95bc3a5309ee0/597e58ea52d714e5bba95bc3a5309ee0.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Ragna Crimson",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/33/da/33dad9235a5495bc92e52aac6d6d9f5f/33dad9235a5495bc92e52aac6d6d9f5f.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Rascal Does Not Dream of Bunny Girl Senpai",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/11/ce/11ce0781db5a024b36461797ac4d4db7/11ce0781db5a024b36461797ac4d4db7.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Re;Zero",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/82/50/825040c17445dd322656870e36cd92a7/825040c17445dd322656870e36cd92a7.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Record of Ragnarok",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/8d/ae/8dae295de544d4f81ec600ae126909cb/8dae295de544d4f81ec600ae126909cb.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Redo of Healer",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/79/e4/79e4b6cfe769c487fdcccd33e9cd160f/79e4b6cfe769c487fdcccd33e9cd160f.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Reign of the Seven Spellblades",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9c/37/9c37a7853fc9c6152ba9a9e3f6264b89/9c37a7853fc9c6152ba9a9e3f6264b89.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Reincarnated as a Sword",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/8c/cc/8cccd0c253b338982bb873422f3b5f8a/8cccd0c253b338982bb873422f3b5f8a.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Reload Blast",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/27/2c/272cbb8c7b67ef8e62279959820f220e/272cbb8c7b67ef8e62279959820f220e.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Solo Leveling",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/b1/47/b147d331e311a5d5c8ee81269725fc92/b147d331e311a5d5c8ee81269725fc92.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Spy Classroom",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/e5/8c/e58ccb788a8d716221458f031459d170/e58ccb788a8d716221458f031459d170.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Spy X Family",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/88/bd/88bd17534dc4884f23027035d23d74e5/88bd17534dc4884f23027035d23d74e5.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Summer Time Rendering",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ea/7d/ea7d0f5a13acc78dd85e81eb75ac8fdc/ea7d0f5a13acc78dd85e81eb75ac8fdc.png",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Sword Art Online",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/90/dc/90dca175561e61180622bc79218104cb/90dca175561e61180622bc79218104cb.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Tekken Bloodline",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/8d/5e/8d5ed00778e65afde4d7b8f31c2a5a84/8d5ed00778e65afde4d7b8f31c2a5a84.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "That Time I Got Reincarnated As A Slime",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/f6/f0/f6f0a1657b0f119bb850fe3b1bbf81b5/f6f0a1657b0f119bb850fe3b1bbf81b5.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Aristocrat's Otherworldly Adventure: Serving Gods Who Go Too Far",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/20/39/20398dadb590c2c769d1eed77d671677/20398dadb590c2c769d1eed77d671677.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Beginning After The End",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9b/c9/9bc9db5df112e89f9bb5020db9dbd1f8/9bc9db5df112e89f9bb5020db9dbd1f8.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Eminence in Shadow",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/bc/a4/bca4a71e271a30fb1b44d33d56db8f8f/bca4a71e271a30fb1b44d33d56db8f8f.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Iceblade Sorcerer Shall Rule The World",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/bf/79/bf79085411f081a488923f57a4ffbe10/bf79085411f081a488923f57a4ffbe10.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The God of High School",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ac/d2/acd2c05725993caa21dcfe604dff077b/acd2c05725993caa21dcfe604dff077b.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Magical Revolution of the Reincarnated Princess and the Genius Young Lady",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a7/6c/a76ca9cc2d90461344e8ba4cc5826258/a76ca9cc2d90461344e8ba4cc5826258.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Misfit of The Demon King Academy",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/14/fc/14fcdd693f769d60d1c8f676c061a2bf/14fcdd693f769d60d1c8f676c061a2bf.png",
+      synopsis: ["Hi there."]
+    },    {
+      name: "The Ossan Newbie Adventurer, Trained to Death by the Goddess",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/2f/6f/2f6f9eb3a7bdd479805f034255e492c5/2f6f9eb3a7bdd479805f034255e492c5.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Reincarnation of the Strongest Exorcist in Another World",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/ab/fb/abfb85788cbcf278acd411a4f2e7a161/abfb85788cbcf278acd411a4f2e7a161.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The Seven Deadly Sins",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a2/d2/a2d2c39e190b7d01dd8bccd985df742c/a2d2c39e190b7d01dd8bccd985df742c.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "The World's Finest Assassin Gets Reincarnated in a Different World as an Aristocrat",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/68/8e/688e4c1b468215a9dccc5f028122f3a6/688e4c1b468215a9dccc5f028122f3a6.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Tokyo Ghoul",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a6/ff/a6ffd8294e7a5d540d7c462e94400189/a6ffd8294e7a5d540d7c462e94400189.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Tokyo Revengers",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/c0/4e/c04ee7106ea54910abdd39563d239374/c04ee7106ea54910abdd39563d239374.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Tomo-chan Is a Girl",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/72/b9/72b9514fba1c1f336fb744c08db0af4d/72b9514fba1c1f336fb744c08db0af4d.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Tomodachi Game",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9a/5e/9a5e63ac520c54c8679f062b10ce67e0/9a5e63ac520c54c8679f062b10ce67e0.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Undefeated Bahamut Chronicles",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/bf/8d/bf8dfb68daa8c2ba626adcc0069f1d3b/bf8dfb68daa8c2ba626adcc0069f1d3b.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Vermmil in Gold",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/a4/1d/a41d2b49f816b8e0971957b7779d3e43/a41d2b49f816b8e0971957b7779d3e43.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Vinland Saga",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/9c/c8/9cc864ccccce7f38f7a100627ef21516/9cc864ccccce7f38f7a100627ef21516.jpg",
+      synopsis: ["Hi there."]
+    },
+    {
+      name: "Your Name",
+      image: "https://img.flawlessfiles.com/_r/300x400/100/16/ee/16eec56baf8f3fcc6430607f58ce3d12/16eec56baf8f3fcc6430607f58ce3d12.jpg",
+      synopsis: ["Hi there."]
+    }
+  ];
+
+  // Container for cards
+  const animeGrid = document.getElementById('animeGrid');
+  const vaultButton = document.getElementById('vaultButton');
+
+  // State: how many cards currently shown (start with 4)
+  let cardsShown = 4;
+
+  // Function to create a single anime card element
+  function createAnimeCard(anime, index) {
+    const card = document.createElement('div');
+    card.classList.add('anime-card');
+
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-front">
+          <img src="${anime.image}" alt="${anime.name}" />
+          <p>${anime.name}</p>
+        </div>
+        <div class="card-back">
+          <h3>${anime.name}</h3>
+          <div class="synopsis">${anime.synopsis.map(p => `<p>${p}</p>`).join('')}</div>
+          <label for="rating-${index}">Your Rating:</label>
+          <div class="stars" id="stars-${index}" data-index="${index}">
+            <span class="star" data-value="1">&#9733;</span>
+            <span class="star" data-value="2">&#9733;</span>
+            <span class="star" data-value="3">&#9733;</span>
+            <span class="star" data-value="4">&#9733;</span>
+            <span class="star" data-value="5">&#9733;</span>
+          </div>
+          <label for="comment-${index}">Your Comment:</label>
+          <textarea id="comment-${index}" rows="3" placeholder="Write your review here..."></textarea>
+          <input type="submit" value="Save Review" data-index="${index}" />
+        </div>
+      </div>
+    `;
+
+    // Flip card on click
+    card.addEventListener('click', (e) => {
+      // Prevent flipping when clicking input or textarea or stars
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.classList.contains('star')) return;
+      card.classList.toggle('flipped');
+    });
+
+    return card;
+  }
+
+  // Render initial 4 cards
+  function renderCards(num) {
+    animeGrid.innerHTML = '';
+    for (let i = 0; i < num && i < animeList.length; i++) {
+      const card = createAnimeCard(animeList[i], i);
+      animeGrid.appendChild(card);
+    }
+    attachReviewHandlers();
+  }
+
+  // Save reviews in localStorage: keyed by "animeReview-{index}" as JSON {rating: int, comment: string}
+  function saveReview(index, rating, comment) {
+    const reviewData = { rating, comment };
+    localStorage.setItem(`animeReview-${index}`, JSON.stringify(reviewData));
+  }
+
+  // Load review from localStorage
+  function loadReview(index) {
+    const data = localStorage.getItem(`animeReview-${index}`);
+    return data ? JSON.parse(data) : null;
+  }
+
+  // Attach star rating and review save handlers for all cards currently displayed
+  function attachReviewHandlers() {
+    for (let i = 0; i < cardsShown; i++) {
+      const starsDiv = document.getElementById(`stars-${i}`);
+      const textarea = document.getElementById(`comment-${i}`);
+      const submitBtn = animeGrid.querySelector(`input[type="submit"][data-index="${i}"]`);
+
+      if (!starsDiv || !textarea || !submitBtn) continue;
+
+      // Load existing review if any
+      const existing = loadReview(i);
+      if (existing) {
+        setStarRating(starsDiv, existing.rating);
+        textarea.value = existing.comment;
+      } else {
+        setStarRating(starsDiv, 0);
+        textarea.value = '';
+      }
+
+      // Star hover and click handlers
+      starsDiv.querySelectorAll('.star').forEach(star => {
+        star.onmouseover = () => highlightStars(starsDiv, star.dataset.value);
+        star.onmouseout = () => setStarRating(starsDiv, getSelectedRating(starsDiv));
+        star.onclick = () => {
+          setStarRating(starsDiv, star.dataset.value);
+          starsDiv.dataset.selected = star.dataset.value;
+        };
+      });
+
+      // Submit button handler
+      submitBtn.onclick = (e) => {
+        e.preventDefault();
+        const rating = parseInt(getSelectedRating(starsDiv));
+        const comment = textarea.value.trim();
+        if (rating === 0) {
+          alert('Please select a rating before submitting.');
+          return;
+        }
+        saveReview(i, rating, comment);
+        alert('Review saved!');
+      };
+    }
+  }
+
+  function highlightStars(starsDiv, rating) {
+    starsDiv.querySelectorAll('.star').forEach(star => {
+      star.classList.toggle('selected', star.dataset.value <= rating);
+    });
+  }
+  function setStarRating(starsDiv, rating) {
+    starsDiv.dataset.selected = rating;
+    highlightStars(starsDiv, rating);
+  }
+  function getSelectedRating(starsDiv) {
+    return starsDiv.dataset.selected || 0;
+  }
+
+  // Vault button click: reveal all 8 cards
+  vaultButton.addEventListener('click', () => {
+    cardsShown = animeList.length;
+    renderCards(cardsShown);
+    vaultButton.style.display = 'none'; // hide vault button after opening
+  });
+
+  // Initial render 4 cards
+  renderCards(cardsShown);
+</script>
+<footer>
+  <p>&copy; 2025 Anime Vault Watchlist. Your gateway to top anime picks and reviews.</p>
+</footer>
+</body>
+</html>
